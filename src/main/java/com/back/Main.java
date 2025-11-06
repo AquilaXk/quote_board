@@ -12,6 +12,10 @@ public class Main {
     public static void main(String[] args) throws IOException {
         System.out.println("== 명언 앱 ==");
 
+        if (!folder.exists()) {
+            folder.mkdirs();
+        }
+
         while (status) {
             controller(inputCommand());
         }
@@ -35,23 +39,25 @@ public class Main {
             int currentId;
             File lastIdFile = new File(folderDir + "/lastId.txt");
             if (lastIdFile.exists()) {
-                try (BufferedReader br = new BufferedReader(new FileReader(lastIdFile))) {
-                    String lastId = br.readLine();
-                    currentId = Integer.parseInt(lastId);
-                    currentId++;
-                }
-
+                String lastId = processFileRead(lastIdFile, (BufferedReader br) -> br.readLine());
+                currentId = Integer.parseInt(lastId);
+                currentId++;
             }
-            else {currentId = 1;}
+
+
+            else {
+                currentId = 1;
+            }
 
             Quote quote = new Quote(currentId, content, author);
+            String jsonOutput = makeJson(quote);
 
-            try (FileWriter fw = new FileWriter(folderDir + "/" + currentId + ".json")) {
-                fw.write(makeJson(quote));
-            }
-            try (FileWriter fw = new FileWriter(folderDir + "/lastId.txt")){
-                fw.write(Integer.toString(currentId));
-            }
+            final int finalCurrentId = currentId;
+
+            File quoteFile = new File(folderDir + "/" + currentId + ".json");
+            processFileWriter(quoteFile, (FileWriter fw) -> fw.write(jsonOutput));
+
+            processFileWriter(lastIdFile, (FileWriter fw) -> fw.write(Integer.toString(finalCurrentId)));
 
             System.out.println("%d번 명언이 등록되었습니다.".formatted(currentId));
         }
@@ -74,7 +80,7 @@ public class Main {
             status = false;
         }
 
-        else if (input.startsWith("삭제?id")) {
+        else if (input.startsWith("삭제")) {
             String[] tokens = input.split("=");
             String del_idx = tokens[1];
 
@@ -88,7 +94,7 @@ public class Main {
             }
         }
 
-        else if (input.startsWith("수정?id")) {
+        else if (input.startsWith("수정")) {
             String[] tokens = input.split("=");
             String modi_idx = tokens[1];
 
@@ -141,33 +147,37 @@ public class Main {
     }
 
     public static Quote getQuote(File file) {
+
+    return processFileRead(file, (BufferedReader br) -> {
         String line;
         String id = "";
         String content = "";
         String author = "";
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
 
-            while ((line = br.readLine()) != null)) {
-                line = line.trim();
-                if(line.startsWith("\"content\":")) {
-                    content = line.split(":")[1].trim();
-                    content = content.substring(1, content.length() - 2);
-                }
-                else if (line.startsWith("\"author\":")) {
-                    author = line.split(":")[1].trim();
-                    author = author.substring(1, author.length() - 1);
-                }
-                else if (line.startsWith("\"id\":")) {
-                    id = line.split(":")[1].trim();
-                    id = id.substring(1, id.length() - 1);
-                }
+        while ((line = br.readLine()) != null) {
+            line = line.trim();
+            if (line.startsWith("\"content\":")) {
+                content = line.split(":", 2)[1].trim();
+                content = content.substring(1, content.length() - 2);
+            } else if (line.startsWith("\"author\":")) {
+                author = line.split(":", 2)[1].trim();
+                author = author.substring(1, author.length() - 1);
+            } else if (line.startsWith("\"id\":")) {
+                id = line.split(":", 2)[1].trim();
+                id = id.substring(0, id.length() - 1);
             }
         }
-        catch (IOException e) {
-            throw new RuntimeException(e);
+
+        if (id.isEmpty()) {
+            throw new IOException("ID를 찾을 수 없습니다");
         }
+
         return new Quote(Integer.parseInt(id), content, author);
-    }
+
+    });
+}
+
+
     public static String makeJson(Quote quote) {
         return "{\n" +
                 " \"id\": " + quote.id + ",\n" +
@@ -175,5 +185,33 @@ public class Main {
                 "  \"author\": \"" + quote.author + "\"\n" +
                 "}";
     }
+    @FunctionalInterface
+    interface BufferedReaderProcessor<R> {
+        R process(BufferedReader br) throws IOException;
+    }
+
+    public static <R> R processFileRead(File file, BufferedReaderProcessor<R> processor) {
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+            return processor.process(br);
+        }
+        catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @FunctionalInterface
+    interface FileWriterProcessor {
+        void process(FileWriter fw) throws IOException;
+    }
+
+    public static void processFileWriter(File file, FileWriterProcessor p) {
+        try (FileWriter fw = new FileWriter(file)) {
+            p.process(fw);
+        }
+        catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
 }
+
