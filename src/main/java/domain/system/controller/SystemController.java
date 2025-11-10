@@ -5,7 +5,8 @@ public class SystemController {
 
     }
 
-    public boolean exit() {
-        return false;
+    public boolean actionExit() {
+       return false;
     }
+
 }
