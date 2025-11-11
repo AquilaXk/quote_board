@@ -3,6 +3,7 @@ package domain.wiseSaying.service;
 import domain.wiseSaying.entity.WiseSaying;
 import domain.wiseSaying.repository.WiseSayingRepository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -20,6 +21,9 @@ public class WiseSayingService {
         int currentId = this.repository.getLastId();
         currentId++;
         WiseSaying wisesaying = new WiseSaying(currentId, content, author);
+        LocalDateTime now = LocalDateTime.now();
+        wisesaying.setCreateDate(now);
+        wisesaying.setModifyDate(now);
         this.repository.save(wisesaying);
         this.repository.saveLastId(currentId);
         return currentId;
@@ -36,10 +40,11 @@ public class WiseSayingService {
     }
 
     public Optional<WiseSaying> beforeModify(int modi_idx) {
-        return this.repository.getBeforModify(modi_idx);
+        return this.repository.getBeforeModify(modi_idx);
     }
 
     public void afterModify(WiseSaying wisesaying) {
+        wisesaying.setModifyDate(LocalDateTime.now());
         this.repository.save(wisesaying);
     }
 

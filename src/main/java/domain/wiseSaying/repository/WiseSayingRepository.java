@@ -1,8 +1,10 @@
 package domain.wiseSaying.repository;
 
+
 import domain.wiseSaying.entity.WiseSaying;
 
 import java.io.*;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -79,7 +81,7 @@ public class WiseSayingRepository {
                 .collect(Collectors.toList());
     }
 
-    public Optional<WiseSaying> getBeforModify(int modi_idx) {
+    public Optional<WiseSaying> getBeforeModify(int modi_idx) {
         File file = new File(folderDir + "/" + modi_idx + ".json");
         if (file.exists()) {
             WiseSaying wisesaying = getWiseSaying(file);
@@ -101,6 +103,8 @@ public class WiseSayingRepository {
             String id = "";
             String content = "";
             String author = "";
+            LocalDateTime createDate = null;
+            LocalDateTime modifyDate = null;
 
             while ((line = br.readLine()) != null) {
                 line = line.trim();
@@ -109,18 +113,28 @@ public class WiseSayingRepository {
                     content = content.substring(1, content.length() - 2);
                 } else if (line.startsWith("\"author\":")) {
                     author = line.split(":", 2)[1].trim();
-                    author = author.substring(1, author.length() - 1);
+                    author = author.substring(1, author.length() - 2);
                 } else if (line.startsWith("\"id\":")) {
                     id = line.split(":", 2)[1].trim();
                     id = id.substring(0, id.length() - 1);
+                } else if (line.startsWith("\"createDate\":")) {
+                    String stringCreateDate = line.split(":", 2)[1].trim();
+                    stringCreateDate = stringCreateDate.substring(1, stringCreateDate.length() - 2);
+                    createDate = LocalDateTime.parse(stringCreateDate);
+                } else if (line.startsWith("\"modifyDate\":")) {
+                    String stringModifyDate = line.split(":", 2)[1].trim();
+                    stringModifyDate = stringModifyDate.substring(1, stringModifyDate.length() - 1);
+                    modifyDate = LocalDateTime.parse(stringModifyDate);
                 }
             }
 
             if (id.isEmpty()) {
                 throw new IOException("ID를 찾을 수 없습니다");
             }
-
-            return new WiseSaying(Integer.parseInt(id), content, author);
+            WiseSaying wisesaying = new WiseSaying(Integer.parseInt(id), content, author);
+            wisesaying.setCreateDate(createDate);
+            wisesaying.setModifyDate(modifyDate);
+            return wisesaying;
 
         });
     }
@@ -159,7 +173,9 @@ public class WiseSayingRepository {
         return "{\n" +
                 " \"id\": " + wisesaying.getId() + ",\n" +
                 "  \"content\": \"" + wisesaying.getContent() + "\",\n" +
-                "  \"author\": \"" + wisesaying.getAuthor() + "\"\n" +
+                "  \"author\": \"" + wisesaying.getAuthor() + "\",\n" +
+                "  \"createDate\": \"" + wisesaying.getCreateDate() + "\",\n" +
+                "  \"modifyDate\": \"" + wisesaying.getModifyDate() + "\"\n" +
                 "}";
     }
 

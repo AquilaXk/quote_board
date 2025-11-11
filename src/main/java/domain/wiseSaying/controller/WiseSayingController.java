@@ -1,28 +1,26 @@
 package domain.wiseSaying.controller;
 
 
+import com.back.AppContext;
 import com.back.Rq;
 import domain.wiseSaying.entity.WiseSaying;
 import domain.wiseSaying.service.WiseSayingService;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.Scanner;
 
 public class WiseSayingController {
     private final WiseSayingService wiseSayingService;
-    private final Scanner sc;
 
-    public WiseSayingController(WiseSayingService wiseSayingService, Scanner sc) {
+    public WiseSayingController(WiseSayingService wiseSayingService) {
         this.wiseSayingService = wiseSayingService;
-        this.sc = sc;
     }
 
     public void actionWrite() {
         System.out.print("명언 : ");
-        String content = sc.nextLine().trim();
+        String content = AppContext.sc.nextLine().trim();
         System.out.print("작가 : ");
-        String author = sc.nextLine().trim();
+        String author = AppContext.sc.nextLine().trim();
 
         int currentId = wiseSayingService.register(content, author);
         System.out.println("%d번 명언이 등록되었습니다.".formatted(currentId));
@@ -42,16 +40,18 @@ public class WiseSayingController {
     }
 
     public void actionList() {
-        System.out.println("번호 / 작가 / 명언");
+        System.out.println("번호 / 작가 / 명언 / 저장날짜 / 수정날짜");
         System.out.println("----------------------");
         List<WiseSaying> wisesayings;
         wisesayings = wiseSayingService.wiseSayingList();
 
         wisesayings.reversed().stream()
-                .map(wisesaying -> "%d / %s / %s".formatted(
+                .map(wisesaying -> "%d / %s / %s / %s / %s".formatted(
                         wisesaying.getId(),
                         wisesaying.getAuthor(),
-                        wisesaying.getContent()
+                        wisesaying.getContent(),
+                        wisesaying.getCreateDate().format(AppContext.forPrintDateTimeFormatter),
+                        wisesaying.getModifyDate().format(AppContext.forPrintDateTimeFormatter)
                 ))
                 .forEach(System.out::println);
     }
@@ -67,11 +67,11 @@ public class WiseSayingController {
             WiseSaying wisesaying = beforeModi.get();
             System.out.println("명언(기존) : %s".formatted(wisesaying.getContent()));
             System.out.print("명언 : ");
-            wisesaying.setContent(sc.nextLine().trim());
+            wisesaying.setContent(AppContext.sc.nextLine().trim());
 
             System.out.println("작가(기존) : %s".formatted(wisesaying.getAuthor()));
             System.out.print("작가 : ");
-            wisesaying.setAuthor(sc.nextLine().trim());
+            wisesaying.setAuthor(AppContext.sc.nextLine().trim());
             wiseSayingService.afterModify(wisesaying);
         }
         else {
